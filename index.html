@@ -384,18 +384,23 @@
   </div>
 
   <footer>
-    Everything runs in your browser using the Web Audio API — your file is never sent to a server. Output is exported as WAV[cite: 1].
+    Everything runs in your browser using the Web Audio API — your file is never sent to a server. Output is exported as WAV.
     
     <!-- Payment & Instagram Verification Section -->
     <div style="margin-top: 20px; text-align: center;">
-      <p style="color: var(--amber); margin-bottom: 8px; font-weight: bold;">Payment Method (Scan to pay $0.52 & get Pro Code):</p>
+      <p style="color: var(--amber); margin-bottom: 8px; font-weight: bold;">Payment Method (Scan to pay ₹50 / $0.52 & get Pro Code):</p>
       <img src="qr.png.jpeg" alt="Payment QR" style="width: 150px; height: 150px; border-radius: 6px; background: white; padding: 5px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;">
       
-      <p style="font-size: 13px; color: var(--paper-dim); margin-bottom: 12px;">
+      <p style="font-size: 13px; color: var(--paper-dim); margin-bottom: 8px;">
         Paid? DM your screenshot on Instagram: <a href="https://instagram.com/audioremover2026" target="_blank" style="color: var(--amber); text-decoration: underline;">@audioremover2026</a> to get your Pro Code.
       </p>
 
-      <input type="password" id="proCode" placeholder="Enter Pro Code" style="padding: 6px; background: var(--bg-raised); color: var(--paper); border: 1px solid var(--line); border-radius: 4px;">
+      <!-- Caution Notice -->
+      <p style="font-size: 11px; color: var(--cut); margin-bottom: 12px; font-weight: bold;">
+        ⚠️ Caution: Once money is paid, it cannot be refunded or returned under any circumstances.
+      </p>
+
+      <input type="password" id="proCode" placeholder="Enter Pro Code" style="padding: 6px; background: solid var(--bg-raised); color: var(--paper); border: 1px solid var(--line); border-radius: 4px;">
       <button onclick="unlockPro()" style="padding: 6px 12px; background: var(--amber); border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px;">Activate Pro</button>
     </div>
   </footer>
@@ -409,7 +414,7 @@
     let isPro = localStorage.getItem('is_pro') === 'true';
 
     if (!isPro && usageCount >= 5) {
-      alert("Free limit reached (5/5 trims used). Please scan the QR code at the bottom, pay $0.52, and DM your screenshot on Instagram (@audioremover2026) to get your Pro Code!");
+      alert("Free limit reached (5/5 trims used). Please scan the QR code at the bottom, pay ₹50 ($0.52), and DM your screenshot on Instagram (@audioremover2026) to get your Pro Code! Note: Payments are strictly non-refundable.");
       return false;
     }
 
@@ -424,7 +429,7 @@
     if (code === "PRO2026") {
       localStorage.setItem('is_pro', 'true');
       localStorage.setItem('trim_count', '0');
-      alert("Pro version activated successfully! You now have 10 extra trims.");
+      alert("Pro version activated successfully! You now have 50 extra trims.");
       location.reload();
     } else {
       alert("Invalid code!");
