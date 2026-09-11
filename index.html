@@ -385,11 +385,49 @@
 
   <footer>
     Everything runs in your browser using the Web Audio API — your file is never sent to a server. Output is exported as WAV.
+    
+    <!-- Pro Activation Section & Scanner Link -->
+    <div style="margin-top: 15px; text-align: center;">
+      <a href="YOUR_PAYTM_QR_IMAGE_LINK" target="_blank" style="color: var(--amber); text-decoration: underline; display: block; margin-bottom: 10px;">📱 Open Paytm Scanner / Payment QR</a>
+      <input type="password" id="proCode" placeholder="Enter Pro Code" style="padding: 6px; background: var(--bg-raised); color: var(--paper); border: 1px solid var(--line); border-radius: 4px;">
+      <button onclick="unlockPro()" style="padding: 6px 12px; background: var(--amber); border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px;">Activate Pro</button>
+    </div>
   </footer>
 </div>
 
 <script>
 (function(){
+  // ---------- usage limit tracking ----------
+  function checkAndIncrementUsage() {
+    let usageCount = parseInt(localStorage.getItem('trim_count') || '0');
+    let isPro = localStorage.getItem('is_pro') === 'true';
+
+    if (!isPro && usageCount >= 5) {
+      let payNow = confirm("Free limit reached (5/5 trims used).\n\nPay $1 to unlock 10 more trims!\n\nClick OK to open the Paytm Scanner/Payment page.");
+      if (payNow) {
+        window.open("YOUR_PAYTM_QR_IMAGE_LINK", "_blank");
+      }
+      return false;
+    }
+
+    if (!isPro) {
+      localStorage.setItem('trim_count', usageCount + 1);
+    }
+    return true;
+  }
+
+  window.unlockPro = function() {
+    let code = document.getElementById('proCode').value;
+    if (code === "PRO2026") {
+      localStorage.setItem('is_pro', 'true');
+      localStorage.setItem('trim_count', '0');
+      alert("Pro version activated successfully! You now have 10 extra trims.");
+      location.reload();
+    } else {
+      alert("Invalid code!");
+    }
+  };
+
   // ---------- decorative hero bars ----------
   const heroBars = document.getElementById('heroBars');
   const barCount = 48;
@@ -427,8 +465,6 @@
 
   let currentFile = null;
   let audioBuffer = null;
-  let lastKeepWindow = null;
-  let lastWindowSize = null;
 
   thresholdEl.oninput = () => thresholdVal.textContent = thresholdEl.value + ' dB';
   minGapEl.oninput = () => minGapVal.textContent = minGapEl.value + ' ms';
@@ -488,7 +524,7 @@
   }
 
   // ---------- waveform drawing ----------
-  function drawWaveform(buffer, keepWindow /* boolean[] over 20ms windows, or null */){
+  function drawWaveform(buffer, keepWindow){
     const w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
     const data = buffer.getChannelData(0);
@@ -521,7 +557,7 @@
     return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
   }
 
-  // preview cut regions live as sliders move, without re-processing audio
+  // preview cut regions live as sliders move
   [thresholdEl, minGapEl, paddingEl].forEach(el => {
     el.addEventListener('input', () => {
       if (!audioBuffer) return;
@@ -538,7 +574,7 @@
     const length = channels[0].length;
     const sampleRate = buffer.sampleRate;
 
-    const windowSize = Math.max(1, Math.floor(sampleRate * 0.02)); // 20ms windows
+    const windowSize = Math.max(1, Math.floor(sampleRate * 0.02));
     const numWindows = Math.ceil(length / windowSize);
     const threshold = Math.pow(10, thresholdDb / 20);
 
@@ -619,7 +655,7 @@
     return outBuffer;
   }
 
-  // ---------- WAV encoding (16-bit PCM) ----------
+  // ---------- WAV encoding ----------
   function audioBufferToWav(buffer){
     const numChannels = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
@@ -635,13 +671,13 @@
     view.setUint32(4, 36 + dataSize, true);
     writeString(view, 8, 'WAVE');
     writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);          // PCM chunk size
-    view.setUint16(20, 1, true);           // audio format = PCM
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
     view.setUint16(22, numChannels, true);
     view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * blockAlign, true); // byte rate
+    view.setUint32(28, sampleRate * blockAlign, true);
     view.setUint16(32, blockAlign, true);
-    view.setUint16(34, 16, true);          // bits per sample
+    view.setUint16(34, 16, true);
     writeString(view, 36, 'data');
     view.setUint32(40, dataSize, true);
 
@@ -666,11 +702,14 @@
 
   // ---------- process button ----------
   processBtn.addEventListener('click', async () => {
+    // Enforce 5-trim limit
+    if (!checkAndIncrementUsage()) return;
+
     if (!audioBuffer) return;
     processBtn.disabled = true;
     statusEl.textContent = 'Analyzing…';
 
-    await new Promise(r => setTimeout(r, 20)); // let UI paint
+    await new Promise(r => setTimeout(r, 20));
 
     try {
       const thresholdDb = Number(thresholdEl.value);
