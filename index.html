@@ -384,11 +384,13 @@
   </div>
 
   <footer>
-    Everything runs in your browser using the Web Audio API — your file is never sent to a server. Output is exported as WAV.
+    Everything runs in your browser using the Web Audio API — your file is never sent to a server. Output is exported as WAV[cite: 1].
     
-    <!-- Pro Activation Section & Scanner Link -->
-    <div style="margin-top: 15px; text-align: center;">
-      <a href="YOUR_PAYTM_QR_IMAGE_LINK" target="_blank" style="color: var(--amber); text-decoration: underline; display: block; margin-bottom: 10px;">📱 Open Paytm Scanner / Payment QR</a>
+    <!-- Payment & Activation Section -->
+    <div style="margin-top: 20px; text-align: center;">
+      <p style="color: var(--amber); margin-bottom: 8px; font-weight: bold;">Payment Method (Scan to pay $1 & get Pro Code):</p>
+      <img src="qr.png" alt="Payment QR" style="width: 150px; height: 150px; border-radius: 6px; background: white; padding: 5px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;">
+      
       <input type="password" id="proCode" placeholder="Enter Pro Code" style="padding: 6px; background: var(--bg-raised); color: var(--paper); border: 1px solid var(--line); border-radius: 4px;">
       <button onclick="unlockPro()" style="padding: 6px 12px; background: var(--amber); border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px;">Activate Pro</button>
     </div>
@@ -403,10 +405,7 @@
     let isPro = localStorage.getItem('is_pro') === 'true';
 
     if (!isPro && usageCount >= 5) {
-      let payNow = confirm("Free limit reached (5/5 trims used).\n\nPay $1 to unlock 10 more trims!\n\nClick OK to open the Paytm Scanner/Payment page.");
-      if (payNow) {
-        window.open("YOUR_PAYTM_QR_IMAGE_LINK", "_blank");
-      }
+      alert("Free limit reached (5/5 trims used). Please scan the QR code at the bottom of the page to pay $1 and get your Pro Code!");
       return false;
     }
 
