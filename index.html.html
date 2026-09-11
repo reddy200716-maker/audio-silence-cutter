@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deadwood — cut the silence out of your audio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap');
+
+  :root{
+    --bg: #14161A;
+    --bg-raised: #1C1F25;
+    --line: #2B2F37;
+    --paper: #EDE9E1;
+    --paper-dim: #9C9A93;
+    --amber: #E8A23D;
+    --amber-dim: #6b5228;
+    --cut: #C25B4A;
+    --cut-dim: #3a2622;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--paper);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap{
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  header{
+    margin-bottom: 40px;
+  }
+
+  .kicker{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--amber);
+    letter-spacing: 0.02em;
+    margin-bottom: 14px;
+  }
+
+  h1{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 40px;
+    line-height: 1.15;
+    margin: 0 0 14px;
+    max-width: 15ch;
+  }
+
+  .sub{
+    color: var(--paper-dim);
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 46ch;
+    margin: 0;
+  }
+
+  /* Decorative hero bars — become the real waveform once a file loads */
+  .hero-bars{
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 64px;
+    margin: 32px 0 40px;
+  }
+  .hero-bars span{
+    flex: 1;
+    background: var(--amber-dim);
+    border-radius: 1px;
+    animation: rise 1.1s ease-out backwards;
+  }
+  @keyframes rise{
+    from{ transform: scaleY(0); }
+    to{ transform: scaleY(1); }
+  }
+
+  .dropzone{
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+    background: var(--bg-raised);
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color: var(--amber);
+    background: #21242b;
+  }
+  .dropzone .dz-title{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+  .dropzone .dz-sub{
+    color: var(--paper-dim);
+    font-size: 13px;
+  }
+  input[type=file]{ display:none; }
+
+  .panel{
+    display: none;
+    margin-top: 32px;
+  }
+  .panel.show{ display: block; }
+
+  .file-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .file-name{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+  }
+  .file-meta{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--paper-dim);
+  }
+  .file-row button{
+    background: none;
+    border: none;
+    color: var(--paper-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+  .file-row button:hover{ color: var(--paper); }
+
+  .controls{
+    display: grid;
+    gap: 22px;
+    margin-bottom: 28px;
+  }
+  .control label{
+    display:flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .control label .val{
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--amber);
+  }
+  .control input[type=range]{
+    width: 100%;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    outline: none;
+  }
+  .control input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+  .control input[type=range]::-moz-range-thumb{
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+  .control .hint{
+    font-size: 12px;
+    color: var(--paper-dim);
+    margin-top: 6px;
+  }
+
+  button.primary{
+    width: 100%;
+    padding: 14px;
+    background: var(--amber);
+    color: #1a1508;
+    border: none;
+    border-radius: 5px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: filter .15s ease;
+  }
+  button.primary:hover{ filter: brightness(1.08); }
+  button.primary:disabled{
+    background: var(--line);
+    color: var(--paper-dim);
+    cursor: not-allowed;
+  }
+
+  canvas{
+    width: 100%;
+    height: 110px;
+    display: block;
+    margin-top: 10px;
+    border-radius: 4px;
+    background: var(--bg-raised);
+  }
+
+  .wave-label{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--paper-dim);
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .wave-label .dot{
+    display:inline-block;
+    width:8px; height:8px;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .result{
+    display: none;
+    margin-top: 32px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+  }
+  .result.show{ display: block; }
+
+  .stats{
+    display: flex;
+    gap: 28px;
+    margin: 20px 0 24px;
+  }
+  .stat .n{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    color: var(--amber);
+  }
+  .stat .l{
+    font-size: 12px;
+    color: var(--paper-dim);
+    margin-top: 2px;
+  }
+
+  .result-actions{
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  audio{
+    width: 100%;
+    margin-top: 4px;
+  }
+  a.download{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    background: transparent;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    border-radius: 5px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s ease;
+  }
+  a.download:hover{ background: rgba(232,162,61,0.1); }
+
+  .status{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--paper-dim);
+    margin-top: 14px;
+    min-height: 16px;
+  }
+
+  footer{
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--paper-dim);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 480px){
+    h1{ font-size: 30px; }
+    .stats{ gap: 20px; flex-wrap: wrap; }
+    .result-actions{ flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="kicker">audio · dead air removal</div>
+    <h1>Cut the silence out of your audio.</h1>
+    <p class="sub">Drop in a recording. Deadwood finds the gaps — long pauses, dead air, breathing room that runs too long — and trims them down, right here in your browser. Nothing is uploaded anywhere.</p>
+  </header>
+
+  <div class="hero-bars" id="heroBars"></div>
+
+  <div class="dropzone" id="dropzone">
+    <div class="dz-title">Drop an audio file, or click to browse</div>
+    <div class="dz-sub">MP3, WAV, M4A, OGG — processed locally, never leaves your device</div>
+    <input type="file" id="fileInput" accept="audio/*">
+  </div>
+
+  <div class="panel" id="panel">
+    <div class="file-row">
+      <div>
+        <div class="file-name" id="fileName">—</div>
+        <div class="file-meta" id="fileMeta">—</div>
+      </div>
+      <button id="clearBtn">remove</button>
+    </div>
+
+    <div class="controls">
+      <div class="control">
+        <label>Silence threshold <span class="val" id="thresholdVal">−40 dB</span></label>
+        <input type="range" id="threshold" min="-60" max="-20" value="-40" step="1">
+        <div class="hint">Anything quieter than this counts as silence. Lower = more sensitive.</div>
+      </div>
+      <div class="control">
+        <label>Minimum gap to cut <span class="val" id="minGapVal">400 ms</span></label>
+        <input type="range" id="minGap" min="150" max="2000" value="400" step="50">
+        <div class="hint">Only gaps longer than this get trimmed — shorter pauses stay untouched.</div>
+      </div>
+      <div class="control">
+        <label>Padding kept per gap <span class="val" id="paddingVal">80 ms</span></label>
+        <input type="range" id="padding" min="0" max="300" value="80" step="10">
+        <div class="hint">A sliver of silence left on each side so cuts don't sound abrupt.</div>
+      </div>
+    </div>
+
+    <button class="primary" id="processBtn">Remove gaps</button>
+    <div class="status" id="status"></div>
+
+    <canvas id="waveCanvas" width="1200" height="110"></canvas>
+    <div class="wave-label">
+      <span><span class="dot" style="background:var(--amber)"></span>kept</span>
+      <span><span class="dot" style="background:var(--cut)"></span>cut</span>
+    </div>
+
+    <div class="result" id="result">
+      <div class="stats">
+        <div class="stat">
+          <div class="n" id="origLen">—</div>
+          <div class="l">original</div>
+        </div>
+        <div class="stat">
+          <div class="n" id="newLen">—</div>
+          <div class="l">trimmed</div>
+        </div>
+        <div class="stat">
+          <div class="n" id="reduction">—</div>
+          <div class="l">removed</div>
+        </div>
+      </div>
+      <audio id="player" controls></audio>
+      <div class="result-actions">
+        <a class="download" id="downloadBtn" download="trimmed-audio.wav">Download WAV</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Everything runs in your browser using the Web Audio API — your file is never sent to a server. Output is exported as WAV.
+  </footer>
+</div>
+
+<script>
+(function(){
+  // ---------- decorative hero bars ----------
+  const heroBars = document.getElementById('heroBars');
+  const barCount = 48;
+  for (let i = 0; i < barCount; i++){
+    const s = document.createElement('span');
+    const h = 15 + Math.abs(Math.sin(i * 0.7)) * 70 + Math.random() * 15;
+    s.style.height = h + '%';
+    s.style.animationDelay = (i * 0.015) + 's';
+    heroBars.appendChild(s);
+  }
+
+  // ---------- elements ----------
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const panel = document.getElementById('panel');
+  const fileName = document.getElementById('fileName');
+  const fileMeta = document.getElementById('fileMeta');
+  const clearBtn = document.getElementById('clearBtn');
+  const thresholdEl = document.getElementById('threshold');
+  const minGapEl = document.getElementById('minGap');
+  const paddingEl = document.getElementById('padding');
+  const thresholdVal = document.getElementById('thresholdVal');
+  const minGapVal = document.getElementById('minGapVal');
+  const paddingVal = document.getElementById('paddingVal');
+  const processBtn = document.getElementById('processBtn');
+  const statusEl = document.getElementById('status');
+  const canvas = document.getElementById('waveCanvas');
+  const ctx = canvas.getContext('2d');
+  const resultEl = document.getElementById('result');
+  const origLenEl = document.getElementById('origLen');
+  const newLenEl = document.getElementById('newLen');
+  const reductionEl = document.getElementById('reduction');
+  const player = document.getElementById('player');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  let currentFile = null;
+  let audioBuffer = null;
+  let lastKeepWindow = null;
+  let lastWindowSize = null;
+
+  thresholdEl.oninput = () => thresholdVal.textContent = thresholdEl.value + ' dB';
+  minGapEl.oninput = () => minGapVal.textContent = minGapEl.value + ' ms';
+  paddingEl.oninput = () => paddingVal.textContent = paddingEl.value + ' ms';
+
+  // ---------- file handling ----------
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e => {
+    if (e.target.files.length) loadFile(e.target.files[0]);
+  });
+  clearBtn.addEventListener('click', () => {
+    currentFile = null;
+    audioBuffer = null;
+    panel.classList.remove('show');
+    resultEl.classList.remove('show');
+    fileInput.value = '';
+    statusEl.textContent = '';
+  });
+
+  async function loadFile(file){
+    currentFile = file;
+    fileName.textContent = file.name;
+    fileMeta.textContent = formatBytes(file.size) + ' · decoding…';
+    panel.classList.add('show');
+    resultEl.classList.remove('show');
+    statusEl.textContent = '';
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioCtx();
+      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      fileMeta.textContent = formatBytes(file.size) + ' · ' + formatTime(audioBuffer.duration) + ' · ' + audioBuffer.sampleRate + ' Hz · ' + (audioBuffer.numberOfChannels === 1 ? 'mono' : 'stereo');
+      drawWaveform(audioBuffer, null);
+    } catch (err){
+      fileMeta.textContent = 'Could not decode this file';
+      statusEl.textContent = 'Error: ' + err.message;
+    }
+  }
+
+  function formatBytes(b){
+    if (b < 1024) return b + ' B';
+    if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+    return (b/(1024*1024)).toFixed(1) + ' MB';
+  }
+  function formatTime(s){
+    const m = Math.floor(s / 60);
+    const sec = (s % 60).toFixed(1);
+    return m + ':' + sec.padStart(4, '0');
+  }
+
+  // ---------- waveform drawing ----------
+  function drawWaveform(buffer, keepWindow /* boolean[] over 20ms windows, or null */){
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const data = buffer.getChannelData(0);
+    const step = Math.ceil(data.length / w);
+    const mid = h / 2;
+
+    const windowSizeSamples = keepWindow ? Math.max(1, Math.floor(buffer.sampleRate * 0.02)) : null;
+
+    for (let x = 0; x < w; x++){
+      const start = x * step;
+      let min = 1.0, max = -1.0;
+      for (let i = 0; i < step; i++){
+        const idx = start + i;
+        if (idx >= data.length) break;
+        const v = data[idx];
+        if (v < min) min = v;
+        if (v > max) max = v;
+      }
+      let cut = false;
+      if (keepWindow){
+        const wIdx = Math.min(keepWindow.length - 1, Math.floor(start / windowSizeSamples));
+        cut = !keepWindow[wIdx];
+      }
+      ctx.fillStyle = cut ? getCss('--cut') : getCss('--amber');
+      const barH = Math.max(1, (max - min) * mid);
+      ctx.fillRect(x, mid - barH/2, 1, barH);
+    }
+  }
+  function getCss(varName){
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  }
+
+  // preview cut regions live as sliders move, without re-processing audio
+  [thresholdEl, minGapEl, paddingEl].forEach(el => {
+    el.addEventListener('input', () => {
+      if (!audioBuffer) return;
+      const keep = computeKeepWindows(audioBuffer, Number(thresholdEl.value), Number(minGapEl.value), Number(paddingEl.value));
+      drawWaveform(audioBuffer, keep);
+    });
+  });
+
+  // ---------- core algorithm ----------
+  function computeKeepWindows(buffer, thresholdDb, minSilenceMs, paddingMs){
+    const numChannels = buffer.numberOfChannels;
+    const channels = [];
+    for (let c = 0; c < numChannels; c++) channels.push(buffer.getChannelData(c));
+    const length = channels[0].length;
+    const sampleRate = buffer.sampleRate;
+
+    const windowSize = Math.max(1, Math.floor(sampleRate * 0.02)); // 20ms windows
+    const numWindows = Math.ceil(length / windowSize);
+    const threshold = Math.pow(10, thresholdDb / 20);
+
+    const isSilent = new Array(numWindows);
+    for (let w = 0; w < numWindows; w++){
+      const start = w * windowSize;
+      const end = Math.min(start + windowSize, length);
+      let sumSquares = 0, count = 0;
+      for (let c = 0; c < numChannels; c++){
+        const d = channels[c];
+        for (let i = start; i < end; i++){ sumSquares += d[i]*d[i]; count++; }
+      }
+      const rms = count ? Math.sqrt(sumSquares / count) : 0;
+      isSilent[w] = rms < threshold;
+    }
+
+    const minSilenceWindows = Math.ceil(minSilenceMs / 20);
+    const paddingWindows = Math.ceil(paddingMs / 20);
+    const keepWindow = new Array(numWindows).fill(true);
+
+    let w = 0;
+    while (w < numWindows){
+      if (isSilent[w]){
+        const runStart = w;
+        while (w < numWindows && isSilent[w]) w++;
+        const runEnd = w;
+        const runLength = runEnd - runStart;
+        if (runLength > minSilenceWindows){
+          const keepStart = runStart + paddingWindows;
+          const keepEnd = runEnd - paddingWindows;
+          for (let k = keepStart; k < keepEnd; k++){
+            if (k >= 0 && k < numWindows) keepWindow[k] = false;
+          }
+        }
+      } else {
+        w++;
+      }
+    }
+    return keepWindow;
+  }
+
+  function buildTrimmedBuffer(buffer, keepWindow){
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const length = buffer.getChannelData(0).length;
+    const windowSize = Math.max(1, Math.floor(sampleRate * 0.02));
+    const numWindows = keepWindow.length;
+
+    const channels = [];
+    for (let c = 0; c < numChannels; c++) channels.push(buffer.getChannelData(c));
+
+    let keptTotal = 0;
+    for (let w = 0; w < numWindows; w++){
+      if (keepWindow[w]){
+        const start = w * windowSize;
+        const end = Math.min(start + windowSize, length);
+        keptTotal += (end - start);
+      }
+    }
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const outCtx = new AudioCtx();
+    const outBuffer = outCtx.createBuffer(numChannels, Math.max(1, keptTotal), sampleRate);
+
+    for (let c = 0; c < numChannels; c++){
+      const src = channels[c];
+      const out = outBuffer.getChannelData(c);
+      let pos = 0;
+      for (let w = 0; w < numWindows; w++){
+        if (keepWindow[w]){
+          const start = w * windowSize;
+          const end = Math.min(start + windowSize, length);
+          out.set(src.subarray(start, end), pos);
+          pos += (end - start);
+        }
+      }
+    }
+    return outBuffer;
+  }
+
+  // ---------- WAV encoding (16-bit PCM) ----------
+  function audioBufferToWav(buffer){
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const numFrames = buffer.length;
+    const bytesPerSample = 2;
+    const blockAlign = numChannels * bytesPerSample;
+    const dataSize = numFrames * blockAlign;
+    const bufferLength = 44 + dataSize;
+    const arrBuffer = new ArrayBuffer(bufferLength);
+    const view = new DataView(arrBuffer);
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);          // PCM chunk size
+    view.setUint16(20, 1, true);           // audio format = PCM
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true); // byte rate
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);          // bits per sample
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    const channelData = [];
+    for (let c = 0; c < numChannels; c++) channelData.push(buffer.getChannelData(c));
+
+    let offset = 44;
+    for (let i = 0; i < numFrames; i++){
+      for (let c = 0; c < numChannels; c++){
+        let sample = channelData[c][i];
+        sample = Math.max(-1, Math.min(1, sample));
+        sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+        view.setInt16(offset, sample, true);
+        offset += 2;
+      }
+    }
+    return new Blob([arrBuffer], { type: 'audio/wav' });
+  }
+  function writeString(view, offset, str){
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  }
+
+  // ---------- process button ----------
+  processBtn.addEventListener('click', async () => {
+    if (!audioBuffer) return;
+    processBtn.disabled = true;
+    statusEl.textContent = 'Analyzing…';
+
+    await new Promise(r => setTimeout(r, 20)); // let UI paint
+
+    try {
+      const thresholdDb = Number(thresholdEl.value);
+      const minGapMs = Number(minGapEl.value);
+      const paddingMs = Number(paddingEl.value);
+
+      const keepWindow = computeKeepWindows(audioBuffer, thresholdDb, minGapMs, paddingMs);
+      drawWaveform(audioBuffer, keepWindow);
+
+      statusEl.textContent = 'Rebuilding audio…';
+      await new Promise(r => setTimeout(r, 20));
+
+      const trimmed = buildTrimmedBuffer(audioBuffer, keepWindow);
+      const wavBlob = audioBufferToWav(trimmed);
+      const url = URL.createObjectURL(wavBlob);
+
+      player.src = url;
+      downloadBtn.href = url;
+      const base = (currentFile.name || 'audio').replace(/\.[^.]+$/, '');
+      downloadBtn.download = base + '-trimmed.wav';
+
+      origLenEl.textContent = formatTime(audioBuffer.duration);
+      newLenEl.textContent = formatTime(trimmed.duration);
+      const reduction = 100 * (1 - trimmed.duration / audioBuffer.duration);
+      reductionEl.textContent = Math.max(0, reduction).toFixed(0) + '%';
+
+      resultEl.classList.add('show');
+      statusEl.textContent = 'Done.';
+    } catch (err){
+      statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+      processBtn.disabled = false;
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
